@@ -1,56 +1,70 @@
 from django.contrib import admin
-from django.db.models import Count
+
+# Register your models here.
+from django.contrib import admin
 from django.template.response import TemplateResponse
-
-from courses.models import Category, Course, Lesson
+from django.db.models import Count
+from .models import Category, Course, Lesson, Tag
 from django.utils.html import mark_safe
-from django import forms
 from ckeditor_uploader.widgets import CKEditorUploadingWidget # type: ignore
+from django import forms
 from django.urls import path
-# type: ignore
+from courses import dao
 
-class LessonForm(forms.ModelForm):
-    content = forms.CharField(widget=CKEditorUploadingWidget)
+class CourseAppAdminSite(admin.AdminSite):
+    site_header = 'OU eCourse App'
+
+    def get_urls(self):
+        return [path('cate-stats/', self.cate_stats_view)] + super().get_urls()
+    
+    def cate_stats_view(self, request):
+        # stats = Category.objects.annotate(course_count=Count('courses__id')).values('id', 'name', 'course_count')
+
+        return TemplateResponse(request, 'admin/stats.html', {
+            'stats': dao.count_course_by_cate()
+        })
+
+
+admin_site = CourseAppAdminSite(name='myapp')
+
+
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'name']
+    search_fields = ['name']
+    list_filter = ['id', 'name']
+
+
+class CourseForm(forms.ModelForm):
+    description = forms.CharField(widget=CKEditorUploadingWidget)
+
     class Meta:
-        model = Lesson
+        model = Course
         fields = '__all__'
 
-class MyCourseAdmin(admin.ModelAdmin):
-    list_display = ['id', 'subject', 'category', 'created_at']
-    list_filter = ['id', 'created_at']
-    search_fields = ['subject']
-    list_editable = ['subject']
-    readonly_fields= ['image_view']
 
-    def image_view(self, course):
-        return mark_safe(f'<img src="/static/{course.image.name}" alt="Hinh anh" width="100" height="100" />')
+class TagInlineAdmin(admin.StackedInline):
+    model = Course.tags.through
 
 
-class LessonAdmin(admin.ModelAdmin):
-    form = LessonForm
+class CourseAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'subject', 'created_date', 'updated_date', 'category', 'active']
+    readonly_fields = ['img']
+    inlines = [TagInlineAdmin]
+    form = CourseForm
+
+    def img(self, course):
+        if course:
+            return mark_safe(
+                '<img src="/static/{url}" width="120" />'.format(url=course.image.name)
+            )
 
     class Media:
         css = {
             'all': ('/static/css/style.css', )
         }
-        
-
-class CourseAdminSite(admin.AdminSite):
-    site_header = 'OU eCourse App'
-
-    def get_urls(self):
-        return [path('cate-stats/', self.cate_stats_view)] + super().get_urls()
-
-    def cate_stats_view(self, request):
-        stats = Category.objects.annotate(course_count=Count('course__id')).values('id', 'name', 'course_count')
-
-        return TemplateResponse(request, 'admin/stats.html', {
-            'stats': stats
-        })
 
 
-admin_site = CourseAdminSite(name='ecourseapp')
-
-admin_site.register(Course, MyCourseAdmin)
-admin_site.register(Category)
-admin_site.register(Lesson, LessonAdmin)
+admin_site.register(Category, CategoryAdmin)
+admin_site.register(Course, CourseAdmin)
+admin_site.register(Lesson)
+admin_site.register(Tag)
