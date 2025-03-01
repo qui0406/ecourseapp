@@ -43,7 +43,20 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'rest_framework',
     'drf_yasg',
+    'cloudinary',
 ]
+
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
+
+# Configuration       
+cloudinary.config( 
+    cloud_name = "do43r8nr0", 
+    api_key = "947875495844325", 
+    api_secret = "evQEPk5TbxIMpCWbbXl8sLMbo6A", # Click 'View API Keys' above to copy your API secret
+    secure=True
+)
 
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {

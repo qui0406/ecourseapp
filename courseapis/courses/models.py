@@ -1,10 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField # type: ignore
+from cloudinary.models import CloudinaryField # type: ignore
 
 # Create your models here.
 class User(AbstractUser):
-    avatar = models.ImageField(upload_to='avatars/%Y/%m', null=True)
+    avatar = CloudinaryField('avatar', null=True)
 
 
 class BaseModel(models.Model):
@@ -43,6 +44,9 @@ class Lesson(BaseModel):
     image = models.ImageField(upload_to='lessons/%Y/%m')
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     tags = models.ManyToManyField('Tag')
+
+    def __str__(self):
+        return self.content
 
     class Meta:
         unique_together = ('subject', 'course')
